@@ -4,7 +4,7 @@ import com.pragmaticos.transactions.domain.model.Transaction;
 import lombok.Getter;
 
 @Getter
-public class UserInsufficientBalanceForCommissionException extends RuntimeException {
+public class UserInsufficientBalanceForCommissionException extends RuntimeException implements UserException {
 
     private final String userId;
     private final Transaction transaction;

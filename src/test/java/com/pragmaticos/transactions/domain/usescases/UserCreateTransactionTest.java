@@ -66,7 +66,7 @@ public class UserCreateTransactionTest {
 
         StepVerifier
                 .create(reply)
-                .expectErrorMatches(e -> e instanceof UserNotExistsException && ((UserNotExistsException) e).getId().equals(DESTINATION_USER_ID))
+                .expectErrorMatches(e -> e instanceof UserNotExistsException && ((UserNotExistsException) e).getUserId().equals(DESTINATION_USER_ID))
                 .verify();
 
     }
@@ -88,7 +88,7 @@ public class UserCreateTransactionTest {
 
         StepVerifier
                 .create(reply)
-                .expectErrorMatches(e -> e instanceof UserNotExistsException && ((UserNotExistsException) e).getId().equals(SOURCE_USER_ID))
+                .expectErrorMatches(e -> e instanceof UserNotExistsException && ((UserNotExistsException) e).getUserId().equals(SOURCE_USER_ID))
                 .verify();
 
     }

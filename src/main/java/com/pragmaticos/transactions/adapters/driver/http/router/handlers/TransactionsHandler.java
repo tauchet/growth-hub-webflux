@@ -30,18 +30,13 @@ public class TransactionsHandler {
     public Mono<ServerResponse> createTransaction(ServerRequest request) {
         return request
                 .bodyToMono(UserCreateTransactionRequest.class)
+                .switchIfEmpty(Mono.error(new RuntimeException("¡No se ha encontrado el contenido de la petición!")))
                 .flatMap(this.createTransactionUseCase::createTransaction)
-
                 .flatMap(r -> {
                     System.out.println(r);
                     return ServerResponse.ok()
                             .contentType(MediaType.APPLICATION_JSON)
                             .bodyValue(r);
-                })
-                .onErrorResume(e -> {
-                    return ServerResponse.badRequest()
-                            .contentType(MediaType.TEXT_PLAIN)
-                            .bodyValue(e.getMessage());
                 });
     }
 
@@ -52,10 +47,7 @@ public class TransactionsHandler {
                 .flatMap(this.cancelTransactionUserCase::cancelTransaction)
                 .flatMap(r -> ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(r))
-                .onErrorResume(e -> ServerResponse.badRequest()
-                        .contentType(MediaType.TEXT_PLAIN)
-                        .bodyValue(e.getMessage()));
+                        .bodyValue(r));
     }
 
 }

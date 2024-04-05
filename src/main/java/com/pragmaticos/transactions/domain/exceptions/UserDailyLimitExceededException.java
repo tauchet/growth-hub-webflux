@@ -3,7 +3,7 @@ package com.pragmaticos.transactions.domain.exceptions;
 import lombok.Getter;
 
 @Getter
-public class UserDailyLimitExceededException extends RuntimeException {
+public class UserDailyLimitExceededException extends RuntimeException implements UserException {
 
     private final String userId;
 

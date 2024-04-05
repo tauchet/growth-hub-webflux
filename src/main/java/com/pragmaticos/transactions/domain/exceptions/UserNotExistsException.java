@@ -1,16 +1,15 @@
 package com.pragmaticos.transactions.domain.exceptions;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 @Getter
-public class UserNotExistsException extends RuntimeException {
+public class UserNotExistsException extends RuntimeException implements UserException {
 
-    private final String id;
+    private final String userId;
 
-    public UserNotExistsException(String id, String message) {
+    public UserNotExistsException(String userId, String message) {
         super(message);
-        this.id = id;
+        this.userId = userId;
     }
 
 }

@@ -3,7 +3,7 @@ POST http://localhost:8080/fun/create-transaction
 Content-Type: application/json
 
 {
-  "userId": "123",
+  "userId": "12322",
   "toUserId": "345",
   "value": 10
 }
