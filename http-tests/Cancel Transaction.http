@@ -1,0 +1,7 @@
+###
+POST http://localhost:8080/fun/cancel-transaction
+Content-Type: application/json
+
+{
+  "transactionId": "660ec2be4f22da13e7eb1b01"
+}
