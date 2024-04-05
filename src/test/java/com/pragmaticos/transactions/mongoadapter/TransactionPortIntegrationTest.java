@@ -18,6 +18,7 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -117,26 +118,45 @@ public class TransactionPortIntegrationTest {
     @DisplayName("Sumatoria de transacciones de un día sin contar los demás días.")
     public void dailySumOfTransactions() {
 
-        Mono<Double> reply = this.transactionPort.save(createTransaction(LocalDateTime.now()))
-                .then(this.transactionPort.save(createTransaction(LocalDateTime.now())))
-                .then(this.transactionPort.save(createTransaction(LocalDateTime.now())))
-                .then(this.transactionPort.save(createTransaction(LocalDateTime.now())))
-                .then(this.transactionPort.save(createTransaction(LocalDateTime.now().minusDays(1))))
+        Mono<Double> reply = this.transactionPort.save(createTransaction(null, LocalDateTime.now()))
+                .then(this.transactionPort.save(createTransaction(null, LocalDateTime.now())))
+                .then(this.transactionPort.save(createTransaction(null, LocalDateTime.now())))
+                .then(this.transactionPort.save(createTransaction(null, LocalDateTime.now())))
+                .then(this.transactionPort.save(createTransaction(null, LocalDateTime.now().minusDays(1))))
                 .then(this.transactionPort.dailySumOfTransactions("345"));
 
         StepVerifier
                 .create(reply)
-                .expectNextMatches(ts -> {
-                    System.out.println("Reply: " + ts);
-                    return ts == 4_000_000;
-                })
+                .expectNextMatches(ts -> ts == 4_000_000)
                 .verifyComplete();
 
     }
 
-    private Transaction createTransaction(LocalDateTime date) {
+    @Test
+    @DisplayName("Buscar todas las transferencias por un usuario.")
+    public void findAllByUserId() {
 
-        Transaction ts = Transaction.builder()
+        Flux<Transaction> reply = this.transactionPort.save(createTransaction("ts1", LocalDateTime.now()))
+                .then(this.transactionPort.save(createTransaction("ts2", LocalDateTime.now())))
+                .then(this.transactionPort.save(createTransaction("ts3", LocalDateTime.now())))
+                .then(this.transactionPort.save(createTransaction("ts4", LocalDateTime.now())))
+                .then(this.transactionPort.save(createTransaction("ts5", LocalDateTime.now().minusDays(1))))
+                .thenMany(this.transactionPort.findAllByUserId("345"));
+
+        StepVerifier
+                .create(reply)
+                .expectNextMatches(ts -> ts.getId().equals("ts1"))
+                .expectNextMatches(ts -> ts.getId().equals("ts2"))
+                .expectNextMatches(ts -> ts.getId().equals("ts3"))
+                .expectNextMatches(ts -> ts.getId().equals("ts4"))
+                .expectNextMatches(ts -> ts.getId().equals("ts5"))
+                .verifyComplete();
+
+    }
+
+    private Transaction createTransaction(String id, LocalDateTime date) {
+        return Transaction.builder()
+                .id(id)
                 .value(1_000_000)
                 .date(date)
                 .origin(TransactionOrigin.TRANSFER_BETWEEN_ACCOUNT)
@@ -145,10 +165,8 @@ public class TransactionPortIntegrationTest {
                 .userId("123")
                 .fromUserId("345")
                 .build();
-
-        System.out.println("Creo: " + ts);
-
-        return ts;
     }
+
+
 
 }

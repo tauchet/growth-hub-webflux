@@ -16,7 +16,6 @@ public class BeansImportSelector implements ImportSelector {
         String[] useCaseClasses = ScannerClasses.scannerClasses(USECASES_ROUTE);
         String[] adapterClasses = ScannerClasses.scannerClasses(ADAPTERS_ROUTES);
         String[] totalScanner = new String[useCaseClasses.length + adapterClasses.length];
-        System.out.println(totalScanner.length);
         System.arraycopy(useCaseClasses, 0, totalScanner, 0, useCaseClasses.length);
         System.arraycopy(adapterClasses, 0, totalScanner, useCaseClasses.length, adapterClasses.length);
         Logger.getLogger(BeansImportSelector.class.getName()).info("Imported Beans: " + String.join("\n", totalScanner));

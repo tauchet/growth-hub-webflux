@@ -1,4 +1,4 @@
-package com.pragmaticos.transactions.adapters.driver.http.exception;
+package com.pragmaticos.transactions.adapters.driver.http.exceptions;
 
 import com.pragmaticos.transactions.adapters.driver.http.responses.ErrorResponse;
 import com.pragmaticos.transactions.domain.exceptions.*;

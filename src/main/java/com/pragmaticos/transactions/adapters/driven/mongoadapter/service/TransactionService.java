@@ -32,34 +32,24 @@ public class TransactionService implements TransactionPort {
 
     @Override
     public Flux<Transaction> findAllByUserId(String userId) {
-        Query query = query(new Criteria().orOperator(where("userId").is(userId), where("fromUserId").is(userId)));
-        return this.template
-                .find(query, TransactionEntity.class)
-                .filter(Objects::nonNull)
+        return this.transactionRepository
+                .findAllByUserIdOrFromUserId(userId, userId)
                 .map(TransactionMapper::mapToTransaction);
     }
 
     @Override
     public Mono<Double> dailySumOfTransactions(String userId) {
-
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay(ZoneId.systemDefault()).toLocalDateTime();
         LocalDateTime endOfDay = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toLocalDateTime();
-
-        System.out.println("Inicio: " + startOfDay);
-        System.out.println("Final: " + endOfDay);
-
-        Query query = query(new Criteria().andOperator(
-                where("fromUserId").is(userId),
-                where("origin").ne(TransactionOrigin.BANK_TRANSFER),
-                where("date").gte(startOfDay).lt(endOfDay)
-        ));
-        return this.template
-                .find(query, TransactionEntity.class)
-                .reduce(0D, (count, x) -> {
-                    System.out.println(x);
-                    return count + x.getValue();
-                });
+        return this.transactionRepository
+                .findAllByFromUserIdAndOriginIsNotAndDateBetween(
+                        userId,
+                        TransactionOrigin.BANK_TRANSFER,
+                        startOfDay,
+                        endOfDay
+                )
+                .reduce(0D, (c, x) -> c + x.getValue());
     }
 
     @Override

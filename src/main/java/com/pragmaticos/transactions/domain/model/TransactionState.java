@@ -5,6 +5,7 @@ public enum TransactionState {
     PENDING,
     COMPLETE,
 
+    PROCESSING_CANCELLATION,
     CANCELLED
 
 }

@@ -11,7 +11,10 @@ import com.pragmaticos.transactions.domain.model.TransactionState;
 import com.pragmaticos.transactions.domain.model.requests.UserCreateTransactionRequest;
 import com.pragmaticos.transactions.domain.ports.TransactionPort;
 import com.pragmaticos.transactions.domain.ports.UserPort;
+import com.pragmaticos.transactions.infrastructure.configuration.logger.LoggerAdvice;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -21,42 +24,29 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class UserCreateTransactionUseCaseImpl implements UserCreateTransactionUseCase {
 
+    private final Logger LOGGER = LoggerFactory.getLogger(LoggerAdvice.class);
+
     private final UserPort userPort;
     private final TransactionPort transactionPort;
     private final BankTransactionCommissionUseCase bankTransactionCommissionUseCase;
 
     private Mono<Transaction> processTransactionCommission(Transaction transaction) {
 
-
         if (transaction.getCommission() <= 0) {
             return Mono.just(transaction);
         }
 
-
         return Mono.just(transaction)
-                .flatMap(ts -> {
-                    System.out.println("Pruebita 2?");
-                    return this.userPort
-                            .getById(ts.getFromUserId());
-                })
+                .flatMap(ts -> this.userPort.getById(ts.getFromUserId()))
 
-                .flatMap(x -> {
-                    System.out.println("Pruebita?");
-                    return Mono.just(x);
-                })
                 // Validamos de nuevo si tiene el dinero suficiente para la transacción.
-                .filter(user -> {
-                    System.out.println("uyser: " + user);
-                    System.out.println("Balance: " + transaction.getValue() + transaction.getCommission());
-                    return user.getBalance() >= transaction.getValue() + transaction.getCommission();
-                })
+                .filter(user -> user.getBalance() >= transaction.getValue() + transaction.getCommission())
                 .switchIfEmpty(Mono.error(new UserInsufficientBalanceForCommissionException(transaction.getFromUserId(), transaction, "¡No hay dinero disponible en la cuenta para pagar la comisión de $" + transaction.getCommission() + "!")))
 
                 // Ejecutamos el guardado del banco
                 .then(bankTransactionCommissionUseCase.createBankTransaction(transaction.getFromUserId(),
                         "Comisión por transferencia entre usuarios.",
-                        transaction.getCommission(),
-                        true))
+                        transaction.getCommission()))
 
                 // Regresamos
                 .thenReturn(transaction);
@@ -72,12 +62,17 @@ public class UserCreateTransactionUseCaseImpl implements UserCreateTransactionUs
                 .existsById(data.getToUserId())
                 .filter(exists -> exists)
                 .switchIfEmpty(Mono.error(new UserNotExistsException(data.getToUserId(), "¡El usuario destinatario " + data.getToUserId() + " no existe!")))
-
+                .doOnError(x -> {
+                    LOGGER.info("UserCreateTransaction: No se ha logrado encontrar el usuario destinario " + data.getUserId());
+                })
 
                 // 2. Validar si el usuario que recibirá el dinero existe.
                 .then(this.userPort.getById(data.getUserId()))
                 .filter(Objects::nonNull)
                 .switchIfEmpty(Mono.error(new UserNotExistsException(data.getUserId(), "¡El usuario que quiere enviar el dinero " + data.getUserId() + " no existe!")))
+                .doOnError(x -> {
+                    LOGGER.info("UserCreateTransaction: No se ha logrado encontrar el usuario que desea enviar el dinero " + data.getUserId());
+                })
 
                 // 3. Validar si tiene el balance correspondiente.
                 .filter(user -> user.getBalance() >= data.getValue())
@@ -100,7 +95,6 @@ public class UserCreateTransactionUseCaseImpl implements UserCreateTransactionUs
                             comission = nextDailySum - Constants.LIMIT_OF_COMMISSION_FREE;
                         }
                         comission *= Constants.COMMISSION_PERCENTAGE_FOR_EXCEEDED_LIMIT;
-                        System.out.println("commision: " + comission);
                     }
 
                     Transaction transaction = Transaction.builder()

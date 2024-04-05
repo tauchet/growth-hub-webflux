@@ -16,9 +16,7 @@ import java.util.Arrays;
 @Component
 public class LoggerAdvice {
 
-    public LoggerAdvice() {
-        System.out.println("Creando...");
-    }
+
 
     Logger logger = LoggerFactory.getLogger(LoggerAdvice.class);
 
@@ -36,9 +34,13 @@ public class LoggerAdvice {
         String methodName = proceedingJoinPoint.getSignature().getName();
         String className = proceedingJoinPoint.getTarget().getClass().toString();
         Object[] args = proceedingJoinPoint.getArgs();
-        logger.info("[INVOKE] " + className + " " + methodName + " " + Arrays.toString(args));
+        logger.info("[CHECK] {} {} {}", className, methodName, Arrays.toString(args));
         Object reply = proceedingJoinPoint.proceed();
-        logger.info("[RESPONSE] " + className + " " + methodName + " " + reply);
+
+        String str = String.valueOf(reply);
+        str = str.replaceAll("username=[^&]+", "username=***");
+
+        logger.info("[FINISH] {} {} {}", className, methodName, str);
         return reply;
     }
 

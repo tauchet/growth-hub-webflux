@@ -3,13 +3,10 @@ package com.pragmaticos.transactions.domain.usescases;
 import com.pragmaticos.transactions.domain.exceptions.*;
 import com.pragmaticos.transactions.domain.model.Transaction;
 import com.pragmaticos.transactions.domain.model.TransactionState;
-import com.pragmaticos.transactions.domain.model.User;
 import com.pragmaticos.transactions.domain.model.requests.UserCancelTransactionRequest;
-import com.pragmaticos.transactions.domain.model.requests.UserCreateTransactionRequest;
 import com.pragmaticos.transactions.domain.ports.TransactionPort;
 import com.pragmaticos.transactions.domain.ports.UserPort;
 import com.pragmaticos.transactions.domain.usecases.*;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +19,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 @DisplayName("Cancelar una transacción.")
 @ExtendWith(MockitoExtension.class)
@@ -34,22 +30,16 @@ public class UserCancelTransactionTest {
     @Mock
     UserPort userPort;
 
-    UserCancelTransactionUserCaseImpl userCancelTransactionUserCase;
+    @Mock
+    BankTransactionCommissionUseCase bankTransactionCommissionUseCase;
 
-    @BeforeEach
-    public void setup() {
-        this.userCancelTransactionUserCase = new UserCancelTransactionUserCaseImpl(
-                this.userPort,
-                this.transactionPort,
-                new BankTransactionCommissionUseCaseImpl(this.userPort, this.transactionPort)
-        );
-    }
+    @InjectMocks
+    UserCancelTransactionUserCaseImpl userCancelTransactionUserCase;
 
     String TRANSACTION_ID = "test";
 
     String SOURCE_USER_ID = "123";
     String DESTINATION_USER_ID = "345";
-
 
     @Test
     @DisplayName("La transacción no existe.")
@@ -127,8 +117,11 @@ public class UserCancelTransactionTest {
         });
 
         double commission = transaction.getValue() * 0.05;
-        Mockito.when(this.userPort.sumBalanceById("1", commission)).thenReturn(Mono.just(true));
-        Mockito.when(this.userPort.sumBalanceById(SOURCE_USER_ID, transaction.getValue() - commission)).thenReturn(Mono.just(true));
+        Mockito.when(this.userPort.sumBalanceById(SOURCE_USER_ID, transaction.getValue())).thenReturn(Mono.just(true));
+        Mockito.when(this.bankTransactionCommissionUseCase.createBankTransaction(
+                Mockito.eq(SOURCE_USER_ID),
+                Mockito.any(),
+                Mockito.eq(commission))).thenReturn(Mono.just(Transaction.builder().build()));
 
         Mono<Transaction> reply = this.userCancelTransactionUserCase.cancelTransaction(new UserCancelTransactionRequest(
                 TRANSACTION_ID
@@ -138,9 +131,6 @@ public class UserCancelTransactionTest {
                 .create(reply)
                 .expectNextMatches(ts -> ts.getState() == TransactionState.CANCELLED)
                 .verifyComplete();
-
-        Mockito.verify(this.userPort, Mockito.times(1)).sumBalanceById("1", commission);
-        Mockito.verify(this.userPort, Mockito.times(1)).sumBalanceById(SOURCE_USER_ID, transaction.getValue() - commission);
 
     }
 

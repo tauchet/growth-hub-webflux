@@ -5,6 +5,6 @@ import reactor.core.publisher.Mono;
 
 public interface BankTransactionCommissionUseCase {
 
-    Mono<Transaction> createBankTransaction(String userId, String description, double commission, boolean removeFromUser);
+    Mono<Transaction> createBankTransaction(String userId, String description, double commission);
 
 }

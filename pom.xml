@@ -92,6 +92,7 @@
                         <exclude>**/constants/*</exclude>
                         <exclude>**/configuration/**</exclude>
                         <exclude>**/application/**</exclude>
+                        <exclude>**/responses/**</exclude>
                     </excludes>
                 </configuration>
 

@@ -16,8 +16,7 @@ public class UserCancelTransactionUserCaseImpl implements UserCancelTransactionU
 
     private final UserPort userPort;
     private final TransactionPort transactionPort;
-
-    private final BankTransactionCommissionUseCaseImpl bankTransactionCommissionUseCase;
+    private final BankTransactionCommissionUseCase bankTransactionCommissionUseCase;
 
     @Override
     public Mono<Transaction> cancelTransaction(UserCancelTransactionRequest data) {
@@ -32,22 +31,23 @@ public class UserCancelTransactionUserCaseImpl implements UserCancelTransactionU
                 .filter(ts -> ts.getState() == TransactionState.PENDING)
                 .switchIfEmpty(Mono.error(new TransactionNotPendingException(data.getTransactionId(), "¡La transacción no se encuentra en estado pendiente!")))
 
-                // 3. Cobrar comisión por cancelación.
+                // 3. Actualizar el estado de la transacción
+                .flatMap(ts -> {
+                    ts.setState(TransactionState.PROCESSING_CANCELLATION);
+                    return this.transactionPort.save(ts);
+                })
+
+                // 4. Devolvemos la plata
+                .flatMap(ts -> this.userPort.sumBalanceById(ts.getFromUserId(), ts.getValue()).thenReturn(ts))
+
+                // 4. Cobrar comisión por cancelación.
                 .flatMap(ts -> {
                     double commission = ts.getValue() * Constants.COMMISSION_PERCENTAGE_FOR_CANCEL_TRANSACTION;
                     return this.bankTransactionCommissionUseCase
                             .createBankTransaction(ts.getFromUserId(),
                                     "Comisión por cancelar la transacción",
-                                    commission,
-                                    false)
-                            .thenReturn(ts).zipWith(Mono.just(commission));
-                })
-
-                // 4. Regresar el dinero al usuario
-                .flatMap(tuple -> {
-                    Transaction ts = tuple.getT1();
-                    double value = ts.getValue() - tuple.getT2();
-                    return this.userPort.sumBalanceById(ts.getFromUserId(), value).thenReturn(ts);
+                                    commission)
+                            .thenReturn(ts);
                 })
 
                 // 5. Colocar la transacción en Cancelado.

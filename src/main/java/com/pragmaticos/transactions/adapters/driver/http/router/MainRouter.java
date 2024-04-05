@@ -14,7 +14,8 @@ public class MainRouter {
     @Bean
     public RouterFunction<ServerResponse> initialRoutes(TransactionsHandler tsHandler) {
         return RouterFunctions
-                .route(RequestPredicates.GET("/fun/users/{id}/transactions"), tsHandler::getAllByUserId)
+                .route(RequestPredicates.GET("/fun/users/{id}"), tsHandler::getUserById)
+                .andRoute(RequestPredicates.GET("/fun/users/{id}/transactions"), tsHandler::getAllByUserId)
                 .andRoute(RequestPredicates.POST("/fun/create-transaction"), tsHandler::createTransaction)
                 .andRoute(RequestPredicates.POST("/fun/cancel-transaction"), tsHandler::cancelTransaction);
     }

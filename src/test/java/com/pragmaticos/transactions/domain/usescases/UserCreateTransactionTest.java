@@ -10,12 +10,12 @@ import com.pragmaticos.transactions.domain.model.User;
 import com.pragmaticos.transactions.domain.model.requests.UserCreateTransactionRequest;
 import com.pragmaticos.transactions.domain.ports.TransactionPort;
 import com.pragmaticos.transactions.domain.ports.UserPort;
-import com.pragmaticos.transactions.domain.usecases.BankTransactionCommissionUseCaseImpl;
-import com.pragmaticos.transactions.domain.usecases.UserCreateTransactionUseCaseImpl;
+import com.pragmaticos.transactions.domain.usecases.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,21 +33,14 @@ public class UserCreateTransactionTest {
     @Mock
     UserPort userPort;
 
+    @Mock
+    BankTransactionCommissionUseCase bankTransactionCommissionUseCase;
 
+    @InjectMocks
     UserCreateTransactionUseCaseImpl userCreateTransactionUseCase;
-
-    @BeforeEach
-    public void setup() {
-        this.userCreateTransactionUseCase = new UserCreateTransactionUseCaseImpl(
-                this.userPort,
-                this.transactionPort,
-                new BankTransactionCommissionUseCaseImpl(this.userPort, this.transactionPort)
-        );
-    }
 
     String SOURCE_USER_ID = "123";
     String DESTINATION_USER_ID = "345";
-
 
     @Test
     @DisplayName("El usuario destinatario no existe.")
@@ -161,6 +154,11 @@ public class UserCreateTransactionTest {
                     .build());
         });
 
+        Mockito.when(this.bankTransactionCommissionUseCase.createBankTransaction(
+                Mockito.eq(SOURCE_USER_ID),
+                Mockito.anyString(),
+                Mockito.eq(80000D))).thenReturn(Mono.just(Transaction.builder().build()));
+
         Mono<Transaction> reply = this.userCreateTransactionUseCase.createTransaction(new UserCreateTransactionRequest(
                 SOURCE_USER_ID,
                 DESTINATION_USER_ID,
@@ -185,6 +183,11 @@ public class UserCreateTransactionTest {
         Mockito.when(this.userPort.getById(SOURCE_USER_ID)).thenReturn(Mono.just(createUserSource(9_000_000)));
         Mockito.when(this.transactionPort.dailySumOfTransactions(SOURCE_USER_ID)).thenReturn(Mono.just(0D));
         Mockito.when(this.userPort.sumBalanceById(Mockito.anyString(), Mockito.anyDouble())).thenReturn(Mono.just(true));
+        Mockito.when(this.bankTransactionCommissionUseCase.createBankTransaction(
+                Mockito.eq(SOURCE_USER_ID),
+                Mockito.any(),
+                Mockito.anyDouble())).thenReturn(Mono.just(Transaction.builder().build()));
+
         Mockito.when(this.transactionPort.save(Mockito.any())).then((Answer<Mono<Transaction>>) mock -> {
             Transaction copy = mock.getArgument(0);
             return Mono.just(Transaction.builder()
@@ -222,6 +225,11 @@ public class UserCreateTransactionTest {
         Mockito.when(this.userPort.getById(SOURCE_USER_ID)).thenReturn(Mono.just(createUserSource(9_000_000)));
         Mockito.when(this.transactionPort.dailySumOfTransactions(SOURCE_USER_ID)).thenReturn(Mono.just(5_500_000D));
         Mockito.when(this.userPort.sumBalanceById(Mockito.anyString(), Mockito.anyDouble())).thenReturn(Mono.just(true));
+        Mockito.when(this.bankTransactionCommissionUseCase.createBankTransaction(
+                Mockito.eq(SOURCE_USER_ID),
+                Mockito.anyString(),
+                Mockito.eq(40000D))).thenReturn(Mono.just(Transaction.builder().build()));
+
         Mockito.when(this.transactionPort.save(Mockito.any())).then((Answer<Mono<Transaction>>) mock -> {
             Transaction copy = mock.getArgument(0);
             return Mono.just(Transaction.builder()
